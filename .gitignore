@@ -1,0 +1,14 @@
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+crash.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Keys / secrets (jamais dans Git !)
+*.pem
+*.key
