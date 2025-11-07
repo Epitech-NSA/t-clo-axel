@@ -50,21 +50,21 @@ graph TB
 ```mermaid
 gantt
     title Temps de déploiement initial
-    dateFormat mm
-    axisFormat %M min
-    
+    dateFormat  HH:mm
+    axisFormat  %M min
+
     section PaaS
-    Infrastructure Terraform    :00, 10
-    Build & Push Image          :10, 03
-    Vérification                :13, 02
-    
+    Infrastructure Terraform    :a1, 00:00, 10m
+    Build & Push Image          :a2, 00:10, 3m
+    Vérification                :a3, 00:13, 2m
+
     section IaaS
-    Infrastructure Terraform    :00, 15
-    Build & Push Image          :15, 03
-    Attente cloud-init          :18, 03
-    Ansible: Docker             :21, 03
-    Ansible: Deploy             :24, 02
-    Vérification                :26, 02
+    Infrastructure Terraform    :b1, 00:00, 15m
+    Build & Push Image          :b2, 00:15, 3m
+    Attente cloud-init          :b3, 00:18, 3m
+    "Ansible: Docker"           :b4, 00:21, 3m
+    "Ansible: Deploy"           :b5, 00:24, 2m
+    Vérification                :b6, 00:26, 2m
 ```
 
 #### Complexité du déploiement
