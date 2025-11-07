@@ -1,0 +1,40 @@
+---
+# Main playbook for complete IaaS deployment
+# This playbook installs Docker and deploys the Laravel application
+
+- name: Complete IaaS Deployment
+  hosts: all
+  become: yes
+  gather_facts: yes
+
+  pre_tasks:
+    - name: Wait for system to be ready
+      wait_for_connection:
+        timeout: 300
+
+    - name: Gather facts
+      setup:
+
+    - name: Display target host information
+      debug:
+        msg: "Deploying to {{ ansible_hostname }} ({{ ansible_default_ipv4.address }})"
+
+  roles:
+    - role: docker
+      tags: ['docker', 'install']
+
+    - role: app-deploy
+      tags: ['app', 'deploy']
+
+  post_tasks:
+    - name: Display deployment summary
+      debug:
+        msg: |
+          ========================================
+          Deployment completed successfully!
+          Host: {{ ansible_hostname }}
+          IP: {{ ansible_default_ipv4.address }}
+          Application: {{ app_container_name }}
+          Port: {{ app_port }}
+          ========================================
+

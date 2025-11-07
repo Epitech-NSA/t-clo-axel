@@ -32,9 +32,14 @@ variable "database_name" {
 }
 
 variable "sku_name" {
-  description = "SKU du serveur MySQL"
+  description = "SKU du serveur MySQL (ex: B_Standard_B1ms pour Burstable, GP_Standard_D2s_v3 pour General Purpose)"
   type        = string
-  default     = "B_Standard_B2s"
+  default     = "B_Standard_B1ms"  
+  
+  validation {
+    condition = can(regex("^(B_Standard_B[1-9]ms|GP_Standard_.*|MO_Standard_.*)$", var.sku_name))
+    error_message = "Le SKU doit être un SKU valide Azure MySQL Flexible Server (Burstable: B_Standard_B1ms, B_Standard_B2s, etc.)"
+  }
 }
 
 variable "storage_gb" {

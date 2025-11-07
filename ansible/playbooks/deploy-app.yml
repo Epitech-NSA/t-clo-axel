@@ -1,0 +1,56 @@
+---
+# Playbook for application deployment only
+# Useful for updating the application without reinstalling Docker
+
+- name: Deploy Laravel Application
+  hosts: all
+  become: yes
+  gather_facts: yes
+
+  pre_tasks:
+    - name: Wait for system to be ready
+      wait_for_connection:
+        timeout: 300
+
+    - name: Verify Docker is installed
+      command: docker --version
+      register: docker_check
+      failed_when: docker_check.rc != 0
+      changed_when: false
+
+    - name: Display Docker version
+      debug:
+        msg: "Using Docker: {{ docker_check.stdout }}"
+
+  roles:
+    - role: app-deploy
+      tags: ['app', 'deploy']
+
+  post_tasks:
+    - name: Get running containers
+      command: docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+      register: containers
+      changed_when: false
+
+    - name: Display running containers
+      debug:
+        msg: "{{ containers.stdout_lines }}"
+
+    - name: Test application endpoint
+      uri:
+        url: "http://localhost:{{ app_port }}"
+        status_code: 200
+        timeout: 10
+      register: app_test
+      retries: 3
+      delay: 5
+      ignore_errors: yes
+
+    - name: Display application status
+      debug:
+        msg: "Application is {{ 'ACCESSIBLE' if app_test is succeeded else 'NOT ACCESSIBLE - check logs' }}"
+
+    - name: Show how to check logs
+      debug:
+        msg: "To check application logs, run: docker logs {{ app_container_name }}"
+

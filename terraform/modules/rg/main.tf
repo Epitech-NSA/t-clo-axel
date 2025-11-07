@@ -1,5 +1,4 @@
-resource "azurerm_resource_group" "this" {
-  name     = var.rg_name
-  location = var.location
-  tags     = var.tags
+# Data source pour récupérer le RG existant (fourni par Epitech)
+data "azurerm_resource_group" "this" {
+  name = var.rg_name
 }

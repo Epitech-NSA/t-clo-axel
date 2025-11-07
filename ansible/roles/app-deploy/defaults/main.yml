@@ -1,0 +1,9 @@
+---
+# defaults file for app-deploy
+
+# These variables should be defined in group_vars/all.yml
+# or passed as extra vars during playbook execution
+app_container_name: "laravel-app"
+app_port: 80
+app_directory: "/opt/app"
+

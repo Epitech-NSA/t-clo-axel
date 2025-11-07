@@ -1,0 +1,145 @@
+---
+# tasks file for application deployment
+
+- name: Create application directory
+  file:
+    path: "{{ app_directory }}"
+    state: directory
+    mode: '0755'
+  become: yes
+
+- name: Install Azure CLI for ACR authentication
+  shell: |
+    curl -sL https://aka.ms/InstallAzureCLIDeb | bash
+  args:
+    creates: /usr/bin/az
+  become: yes
+
+- name: Check if Azure CLI is installed
+  command: az --version
+  register: az_version
+  changed_when: false
+  ignore_errors: yes
+
+- name: Authenticate to ACR using managed identity
+  shell: |
+    az login --identity
+    az acr login --name {{ acr_name }}
+  become: yes
+  when: az_version.rc == 0
+  ignore_errors: yes
+
+- name: Alternative - Login to ACR with Docker (if managed identity fails)
+  shell: |
+    TOKEN=$(az acr login --name {{ acr_name }} --expose-token --output tsv --query accessToken)
+    echo $TOKEN | docker login {{ acr_login_server }} --username 00000000-0000-0000-0000-000000000000 --password-stdin
+  become: yes
+  when: az_version.rc == 0
+  ignore_errors: yes
+
+- name: Pull Docker image from ACR
+  docker_image:
+    name: "{{ docker_image_full }}"
+    source: pull
+    force_source: yes
+  become: yes
+  retries: 3
+  delay: 10
+
+- name: Create .env file for Laravel from template
+  template:
+    src: laravel-env.j2
+    dest: "{{ app_directory }}/.env"
+    mode: '0644'
+  become: yes
+
+- name: Stop existing application container (if running)
+  docker_container:
+    name: "{{ app_container_name }}"
+    state: absent
+  become: yes
+  ignore_errors: yes
+
+- name: Run Laravel application container
+  docker_container:
+    name: "{{ app_container_name }}"
+    image: "{{ docker_image_full }}"
+    state: started
+    restart_policy: always
+    published_ports:
+      - "{{ app_port }}:80"
+    volumes:
+      - "{{ app_directory }}/.env:/var/www/html/.env:ro"
+    env:
+      DB_CONNECTION: "mysql"
+      DB_HOST: "{{ mysql_host }}"
+      DB_PORT: "{{ mysql_port }}"
+      DB_DATABASE: "{{ mysql_database }}"
+      DB_USERNAME: "{{ mysql_username }}"
+      DB_PASSWORD: "{{ mysql_password }}"
+      APP_KEY: "{{ laravel_app_key }}"
+      APP_ENV: "{{ laravel_app_env }}"
+      APP_DEBUG: "{{ laravel_app_debug }}"
+  become: yes
+  register: container_result
+
+- name: Wait for container to be healthy
+  wait_for:
+    port: "{{ app_port }}"
+    delay: 5
+    timeout: 60
+  when: container_result is changed
+
+- name: Run database migrations
+  docker_container:
+    name: laravel-migrate
+    image: "{{ docker_image_full }}"
+    command: php artisan migrate --force
+    state: started
+    detach: no
+    cleanup: yes
+    volumes:
+      - "{{ app_directory }}/.env:/var/www/html/.env:ro"
+    env:
+      DB_CONNECTION: "mysql"
+      DB_HOST: "{{ mysql_host }}"
+      DB_PORT: "{{ mysql_port }}"
+      DB_DATABASE: "{{ mysql_database }}"
+      DB_USERNAME: "{{ mysql_username }}"
+      DB_PASSWORD: "{{ mysql_password }}"
+  become: yes
+  ignore_errors: yes
+
+- name: Seed database (optional)
+  docker_container:
+    name: laravel-seed
+    image: "{{ docker_image_full }}"
+    command: php artisan db:seed --force
+    state: started
+    detach: no
+    cleanup: yes
+    volumes:
+      - "{{ app_directory }}/.env:/var/www/html/.env:ro"
+    env:
+      DB_CONNECTION: "mysql"
+      DB_HOST: "{{ mysql_host }}"
+      DB_PORT: "{{ mysql_port }}"
+      DB_DATABASE: "{{ mysql_database }}"
+      DB_USERNAME: "{{ mysql_username }}"
+      DB_PASSWORD: "{{ mysql_password }}"
+  become: yes
+  ignore_errors: yes
+
+- name: Verify application is running
+  uri:
+    url: "http://localhost:{{ app_port }}"
+    status_code: 200
+  register: app_health
+  retries: 3
+  delay: 5
+  ignore_errors: yes
+
+- name: Display application status
+  debug:
+    msg: "Application deployment {{ 'successful' if app_health is succeeded else 'may have issues - check logs' }}"
+

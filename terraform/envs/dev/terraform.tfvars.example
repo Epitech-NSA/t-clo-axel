@@ -1,0 +1,18 @@
+# Terraform Variables for Development Environment
+# Copy this file to terraform.tfvars and fill in the values
+
+# Required: MySQL administrator password
+mysql_admin_password = "YourSecurePassword123!"
+
+# Optional: SSH public key for IaaS VMSS instances
+# Generate with: ssh-keygen -t ed25519 -f ~/.ssh/terracloud-key
+# Then copy the content of ~/.ssh/terracloud-key.pub
+ssh_public_key_iaas = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... your-key-here"
+
+# Optional: Override default values if needed
+# environment = "dev"
+# location = "francecentral"
+# app_service_sku = "B1"
+# mysql_sku = "B_Standard_B1ms"
+# vm_sku = "Standard_B2s"
+

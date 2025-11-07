@@ -1,0 +1,7 @@
+---
+# defaults file for docker
+
+docker_compose_version: "2.24.5"
+docker_users:
+  - "{{ ansible_user }}"
+

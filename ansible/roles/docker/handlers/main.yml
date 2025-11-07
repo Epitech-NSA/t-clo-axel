@@ -1,0 +1,21 @@
+---
+# handlers file for docker
+
+- name: Update apt cache
+  apt:
+    update_cache: yes
+  become: yes
+
+- name: Start and enable Docker
+  systemd:
+    name: docker
+    state: started
+    enabled: yes
+  become: yes
+
+- name: Restart Docker
+  systemd:
+    name: docker
+    state: restarted
+  become: yes
+

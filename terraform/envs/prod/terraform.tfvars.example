@@ -1,0 +1,20 @@
+# Terraform Variables for Production Environment
+# Copy this file to terraform.tfvars and fill in the values
+
+# Required: MySQL administrator password
+mysql_admin_password = "YourSecureProductionPassword123!"
+
+# Optional: SSH public key for IaaS VMSS instances
+# Generate with: ssh-keygen -t ed25519 -f ~/.ssh/terracloud-prod-key
+# Then copy the content of ~/.ssh/terracloud-prod-key.pub
+ssh_public_key_iaas = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... your-key-here"
+
+# Optional: Override default values if needed
+# environment = "prod"
+# location = "francecentral"
+# app_service_sku = "B1"
+# mysql_sku = "B_Standard_B1ms"
+# vm_sku = "Standard_B2s"
+
+# Note: Production runs 24/7 (no shutdown policy)
+

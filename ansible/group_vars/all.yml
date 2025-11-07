@@ -1,0 +1,30 @@
+---
+# Common variables for all hosts
+
+# Azure Container Registry
+acr_name: "tcdevacrfrc01"
+acr_login_server: "tcdevacrfrc01.azurecr.io"
+
+# Docker image
+docker_image_name: "sample-app"
+docker_image_tag: "latest"
+docker_image_full: "{{ acr_login_server }}/{{ docker_image_name }}:{{ docker_image_tag }}"
+
+# Application settings
+app_container_name: "laravel-app"
+app_port: 80
+app_directory: "/opt/app"
+
+# MySQL Database connection (to be provided during deployment)
+# These should be overridden with actual values or use Azure Key Vault
+mysql_host: "tc-dev-mysql-frc-01.mysql.database.azure.com"
+mysql_port: 3306
+mysql_database: "app_database"
+mysql_username: "app_admin"
+mysql_password: "SecurePassword123!"  # TODO: Use Azure Key Vault or Ansible Vault
+
+# Laravel configuration
+laravel_app_key: "base64:DJYTvaRkEZ/YcQsX3TMpB0iCjgme2rhlIOus9A1hnj4="
+laravel_app_env: "production"
+laravel_app_debug: "false"
+

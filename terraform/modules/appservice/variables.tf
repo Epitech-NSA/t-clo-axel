@@ -77,3 +77,15 @@ variable "acr_admin_password" {
   type        = string
   sensitive   = true
 }
+
+variable "app_debug" {
+  description = "Enable debug mode for Laravel application"
+  type        = string
+  default     = "false"
+}
+
+variable "app_env" {
+  description = "Application environment (dev, staging, production)"
+  type        = string
+  default     = "production"
+}

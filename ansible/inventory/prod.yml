@@ -1,0 +1,40 @@
+# Azure Dynamic Inventory Configuration - Production Environment
+# Requires: pip install ansible[azure]
+
+plugin: azure_rm
+
+# Azure authentication
+auth_source: auto  # Uses Azure CLI credentials by default
+
+# Filter instances for production
+include_vm_resource_groups:
+  - rg-nan_1
+
+# Conditional groups based on tags
+conditional_groups:
+  iaas_vms: "'IaaS' in (tags.deployment_type | default(''))"
+  prod_env: "'prod' in (tags.env | default(''))"
+  terracloud: "'TERRACLOUD' in (tags.project | default(''))"
+
+# Keyed groups
+keyed_groups:
+  - key: tags.env
+    prefix: env
+    separator: "_"
+  - key: tags.deployment_type
+    prefix: deployment
+    separator: "_"
+
+# Compose variables
+compose:
+  ansible_host: public_ip_addresses[0] | default(private_ipv4_addresses[0])
+  ansible_user: "azureuser"
+
+# Include VMSS instances
+include_vmss_resource_groups:
+  - rg-nan_1
+
+# Only include production VMs
+exclude_host_filters:
+  - tags.env != 'prod'
+

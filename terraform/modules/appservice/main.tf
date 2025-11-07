@@ -12,13 +12,17 @@ resource "azurerm_linux_web_app" "this" {
   location            = var.location
   resource_group_name = var.rg_name
   service_plan_id     = azurerm_service_plan.this.id
+  https_only          = true
 
   site_config {
     application_stack {
-      docker_image_name   = "${var.acr_login_server}/${var.image_name}:${var.image_tag}"
+      docker_image_name        = "${var.image_name}:${var.image_tag}"
+      docker_registry_url      = "https://${var.acr_login_server}"
       docker_registry_username = var.acr_admin_username
       docker_registry_password = var.acr_admin_password
     }
+    
+    minimum_tls_version = "1.2"
   }
 
   identity {
@@ -27,9 +31,10 @@ resource "azurerm_linux_web_app" "this" {
 
   app_settings = {
     WEBSITES_PORT               = "80"
+    DOCKER_ENABLE_CI            = "true"
     
-    APP_DEBUG                   = "true"
-    APP_ENV                     = "production"
+    APP_DEBUG                   = var.app_debug
+    APP_ENV                     = var.app_env
     APP_KEY                     = "base64:DJYTvaRkEZ/YcQsX3TMpB0iCjgme2rhlIOus9A1hnj4="
     
     DB_CONNECTION               = "mysql"
@@ -71,4 +76,3 @@ resource "null_resource" "docker_build_push" {
     command = "echo 'ACR ID: ${var.acr_id}'"
   }
 }
-

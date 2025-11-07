@@ -1,10 +1,17 @@
-# Utilisez une image Docker officielle pour PHP 7.4 avec Apache
+# Utilisez une image Docker officielle pour PHP 8.2 avec Apache
 FROM php:8.2.8-apache
+
+# Installez les dépendances système et SSH
+RUN apt-get update && apt-get install -y \
+    git \
+    unzip \
+    p7zip-full \
+    openssh-server \
+    dialog \
+    && rm -rf /var/lib/apt/lists/*
 
 # Installez les extensions PHP nécessaires
 RUN docker-php-ext-install pdo_mysql
-
-RUN apt-get update && apt-get install -y git unzip p7zip-full
 
 # Installez Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -13,16 +20,13 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 COPY . /var/www/html/
 
 # Installez les dépendances de l'application
-RUN composer install
+RUN composer install --no-dev --optimize-autoloader
 
-# Copiez le script d'entrée et donnez-lui les permissions d'exécution
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-
+# Configuration des permissions
 RUN chown -R www-data:www-data /var/www/html/vendor /var/www/html/storage /var/www/html/bootstrap /var/www/html/public /var/www/html/app /var/www/html/config /var/www/html/routes /var/www/html/resources
 RUN chmod -R 755 /var/www/html/vendor /var/www/html/storage /var/www/html/bootstrap /var/www/html/public /var/www/html/app /var/www/html/config /var/www/html/routes /var/www/html/resources
 
-# Modifiez la configuration d'Apache pour pointer vers le répertoire public
+# Configuration d'Apache pour pointer vers le répertoire public
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
@@ -30,8 +34,14 @@ RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
 # Activez le module Apache Rewrite
 RUN a2enmod rewrite
 
-# Définir le script d'entrée
-ENTRYPOINT ["docker-entrypoint.sh"]
+# Configuration SSH pour Azure App Service
+COPY sshd_config /etc/ssh/
+RUN mkdir -p /var/run/sshd \
+    && echo "root:Docker!" | chpasswd \
+    && chmod +x /var/www/html/init.sh
 
-# Exposez le port 80
-EXPOSE 80
+# Exposez les ports
+EXPOSE 80 2222
+
+# Script de démarrage
+CMD ["/var/www/html/init.sh"]
