@@ -491,17 +491,17 @@ flowchart LR
     end
     
     subgraph "Legacy"
-        Legacy[VMs dédiées<br/>IaaS]
+        LGCY[VMs dédiées<br/>IaaS]
     end
     
     FE --> BE
     BE --> Batch
-    BE --> Legacy
+    BE --> LGCY
     
-    style FE fill:#4CAF50
-    style BE fill:#4CAF50
-    style Batch fill:#2196F3
-    style Legacy fill:#2196F3
+    style FE fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
+    style BE fill:#4CAF50,stroke:#333,stroke-width:1px,color:#fff
+    style Batch fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
+    style LGCY fill:#2196F3,stroke:#333,stroke-width:1px,color:#fff
 ```
 
 **Cas d'usage hybride:**
