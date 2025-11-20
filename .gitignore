@@ -1,14 +1,82 @@
 # Terraform
 *.tfstate
 *.tfstate.*
+*.tfplan
 .terraform/
 .terraform.lock.hcl
 crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
 
-# OS
-.DS_Store
-Thumbs.db
+# Terraform variables (peuvent contenir des secrets)
+terraform.tfvars
+*.auto.tfvars
+
+# Configuration et secrets
+config/.env.local
+config/**/*.local
+.env
+.env.local
+.env.*.local
 
 # Keys / secrets (jamais dans Git !)
 *.pem
 *.key
+*.pub.backup
+id_rsa*
+id_ed25519*
+
+# Ansible
+*.retry
+.ansible/
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*~
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# Logs
+*.log
+logs/
+*.out
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
+.cache/
+
+# Build artifacts
+dist/
+build/
+*.tar.gz
+*.zip
+
+# Docker
+.dockerignore.backup
+
+# Azure
+azure-credentials.json
+sp-credentials.json
+
+# Backup files
+backup-*.tfstate
+*-backup.yml
+config/

@@ -36,11 +36,15 @@ resource "azurerm_linux_virtual_machine_scale_set" "vmss" {
     primary = true
 
     ip_configuration {
-      name                                   = "internal"
-      primary                                = true
-      subnet_id                              = var.subnet_id
-      load_balancer_backend_address_pool_ids = [var.lb_backend_pool_id]
-      load_balancer_inbound_nat_rules_ids    = var.lb_nat_pool_id != null ? [var.lb_nat_pool_id] : []
+      name      = "internal"
+      primary   = true
+      subnet_id = var.subnet_id
+      
+      # Public IP configuration
+      public_ip_address {
+        name                    = "vmss-public-ip"
+        idle_timeout_in_minutes = 4
+      }
     }
   }
 

@@ -82,22 +82,6 @@ resource "azurerm_network_security_rule" "allow_ssh_inbound" {
   count = contains([for s in var.subnets : s.nsg_name], "nsg-vmss") ? 1 : 0
 }
 
-resource "azurerm_network_security_rule" "allow_lb_probe_inbound" {
-  name                        = "AllowAzureLoadBalancerInbound"
-  priority                    = 130
-  direction                   = "Inbound"
-  access                      = "Allow"
-  protocol                    = "*"
-  source_port_range           = "*"
-  destination_port_range      = "*"
-  source_address_prefix       = "AzureLoadBalancer"
-  destination_address_prefix  = "*"
-  resource_group_name         = var.rg_name
-  network_security_group_name = try(azurerm_network_security_group.nsg["nsg-vmss"].name, null)
-
-  count = contains([for s in var.subnets : s.nsg_name], "nsg-vmss") ? 1 : 0
-}
-
 resource "azurerm_network_security_rule" "allow_mysql_outbound" {
   name                        = "AllowMySQLOutbound"
   priority                    = 100

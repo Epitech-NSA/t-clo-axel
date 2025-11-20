@@ -28,22 +28,13 @@ variable "acr_login_server" {
   description = "Serveur de connexion à ACR"
 }
 
-variable "acr_id" {
-  description = "ID du Azure Container Registry"
-  type        = string
-}
-
 variable "image_name" {
-  description = "Nom de l'image Docker"
+  description = "Nom de l'image Docker (doit déjà exister dans ACR)"
 }
 
 variable "image_tag" {
-  description = "Tag de l'image Docker"
-}
-
-variable "app_source_path" {
-  description = "Chemin vers le code source de l'application (contenant le Dockerfile)"
-  type        = string
+  description = "Tag de l'image Docker (doit déjà exister dans ACR)"
+  default     = "latest"
 }
 
 variable "mysql_fqdn" {

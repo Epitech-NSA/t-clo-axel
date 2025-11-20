@@ -68,8 +68,6 @@
     restart_policy: always
     published_ports:
       - "{{ app_port }}:80"
-    volumes:
-      - "{{ app_directory }}/.env:/var/www/html/.env:ro"
     env:
       DB_CONNECTION: "mysql"
       DB_HOST: "{{ mysql_host }}"
@@ -98,8 +96,6 @@
     state: started
     detach: no
     cleanup: yes
-    volumes:
-      - "{{ app_directory }}/.env:/var/www/html/.env:ro"
     env:
       DB_CONNECTION: "mysql"
       DB_HOST: "{{ mysql_host }}"
@@ -107,6 +103,9 @@
       DB_DATABASE: "{{ mysql_database }}"
       DB_USERNAME: "{{ mysql_username }}"
       DB_PASSWORD: "{{ mysql_password }}"
+      APP_KEY: "{{ laravel_app_key }}"
+      APP_ENV: "{{ laravel_app_env }}"
+      APP_DEBUG: "{{ laravel_app_debug }}"
   become: yes
   ignore_errors: yes
 
@@ -118,8 +117,6 @@
     state: started
     detach: no
     cleanup: yes
-    volumes:
-      - "{{ app_directory }}/.env:/var/www/html/.env:ro"
     env:
       DB_CONNECTION: "mysql"
       DB_HOST: "{{ mysql_host }}"
@@ -127,6 +124,9 @@
       DB_DATABASE: "{{ mysql_database }}"
       DB_USERNAME: "{{ mysql_username }}"
       DB_PASSWORD: "{{ mysql_password }}"
+      APP_KEY: "{{ laravel_app_key }}"
+      APP_ENV: "{{ laravel_app_env }}"
+      APP_DEBUG: "{{ laravel_app_debug }}"
   become: yes
   ignore_errors: yes
 

@@ -1,0 +1,262 @@
+name: Deploy IaaS
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: choice
+        options:
+          - dev
+          - prod
+      dry_run:
+        description: 'Run in dry-run mode (plan only)'
+        required: false
+        type: boolean
+        default: false
+      setup_https:
+        description: 'Setup HTTPS with Let''s Encrypt'
+        required: false
+        type: boolean
+        default: true
+
+env:
+  TF_VERSION: '~1.6.0'
+  ANSIBLE_VERSION: '2.15'
+
+jobs:
+  deploy-iaas:
+    name: Deploy to ${{ github.event.inputs.environment }}
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install Ansible and Azure dependencies
+        run: |
+          pip install ansible==${{ env.ANSIBLE_VERSION }} \
+            azure-cli-core \
+            azure-mgmt-compute \
+            azure-mgmt-network \
+            azure-mgmt-resource \
+            azure-identity \
+            msrestazure
+          ansible-galaxy collection install azure.azcollection
+      
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+      
+      - name: Terraform Init
+        run: |
+          cd terraform
+          terraform init
+      
+      - name: Select Terraform Workspace
+        run: |
+          cd terraform
+          terraform workspace select ${{ github.event.inputs.environment }} || \
+          terraform workspace new ${{ github.event.inputs.environment }}
+      
+      - name: Terraform Plan
+        id: plan
+        run: |
+          cd terraform
+          terraform plan \
+            -target=module.rg \
+            -target=module.network \
+            -target=module.acr \
+            -target=module.mysql \
+            -target=module.vmss \
+            -target=azurerm_role_assignment.vmss_acr_pull \
+            -target=azurerm_mysql_flexible_server_firewall_rule.vmss_to_mysql \
+            -var="mysql_admin_password=${{ secrets.MYSQL_PASSWORD }}" \
+            -var="environment=${{ github.event.inputs.environment }}" \
+            -var="ssh_public_key_iaas=${{ secrets.SSH_PUBLIC_KEY }}" \
+            -out=tfplan
+      
+      - name: Terraform Apply
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        run: |
+          cd terraform
+          terraform apply -auto-approve tfplan
+      
+      - name: Wait for VMSS initialization
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        run: |
+          echo "Waiting for VMSS instances to initialize (2 minutes)..."
+          sleep 120
+      
+      - name: Get VMSS IPs
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        id: vmss_ips
+        run: |
+          if [ "${{ github.event.inputs.environment }}" == "dev" ]; then
+            VMSS_NAME="tc-dev-vmss-frc-01"
+          else
+            VMSS_NAME="tc-prod-vmss-frc-01"
+          fi
+          
+          IPS=$(az vmss list-instance-public-ips \
+            --name $VMSS_NAME \
+            --resource-group rg-nan_1 \
+            --query "[].ipAddress" -o tsv)
+          
+          echo "ips<<EOF" >> $GITHUB_OUTPUT
+          echo "$IPS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+          FIRST_IP=$(echo "$IPS" | head -1)
+          echo "first_ip=$FIRST_IP" >> $GITHUB_OUTPUT
+          
+          echo "VMSS IPs: $IPS"
+      
+      - name: Create Ansible inventory
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        run: |
+          cd ansible
+          cat > inventory/ci-inventory.yml << EOF
+          ---
+          all:
+            children:
+              vmss_instances:
+                hosts:
+          EOF
+          
+          i=1
+          echo "${{ steps.vmss_ips.outputs.ips }}" | while read ip; do
+            cat >> inventory/ci-inventory.yml << EOF
+                  vmss-instance-${i}:
+                    ansible_host: ${ip}
+                    ansible_user: azureuser
+                    ansible_ssh_private_key_file: ~/.ssh/id_ed25519
+          EOF
+            ((i++))
+          done
+          
+          if [ "${{ github.event.inputs.environment }}" == "dev" ]; then
+            ACR_NAME="tcdevacrfrc01"
+            MYSQL_SERVER="tc-dev-mysql-frc-01"
+            APP_ENV="dev"
+            APP_DEBUG="true"
+          else
+            ACR_NAME="tcprodacrfrc01"
+            MYSQL_SERVER="tc-prod-mysql-frc-01"
+            APP_ENV="prod"
+            APP_DEBUG="false"
+          fi
+          
+          cat >> inventory/ci-inventory.yml << EOF
+                vars:
+                  acr_name: "${ACR_NAME}"
+                  acr_login_server: "${ACR_NAME}.azurecr.io"
+                  docker_image_full: "${ACR_NAME}.azurecr.io/sample-app:latest"
+                  app_container_name: "laravel-app"
+                  app_port: 8080
+                  mysql_host: "${MYSQL_SERVER}.mysql.database.azure.com"
+                  mysql_port: "3306"
+                  mysql_database: "app_database"
+                  mysql_username: "app_admin"
+                  mysql_password: "${{ secrets.MYSQL_PASSWORD }}"
+                  laravel_app_key: "base64:DJYTvaRkEZ/YcQsX3TMpB0iCjgme2rhlIOus9A1hnj4="
+                  laravel_app_env: "${APP_ENV}"
+                  laravel_app_debug: "${APP_DEBUG}"
+          EOF
+          
+          cat inventory/ci-inventory.yml
+      
+      - name: Test SSH connectivity
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        run: |
+          cd ansible
+          echo "Testing SSH connectivity..."
+          ansible all -i inventory/ci-inventory.yml -m ping \
+            -o \
+            --ssh-extra-args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+      
+      - name: Install Docker via Ansible
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        run: |
+          cd ansible
+          ansible-playbook -i inventory/ci-inventory.yml playbooks/docker-only.yml \
+            --ssh-extra-args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+      
+      - name: Deploy application via Ansible
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        run: |
+          cd ansible
+          ansible-playbook -i inventory/ci-inventory.yml playbooks/deploy-app.yml \
+            --ssh-extra-args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+      
+      - name: Setup HTTPS
+        if: ${{ github.event.inputs.dry_run == 'false' && github.event.inputs.setup_https == 'true' }}
+        run: |
+          cd ansible
+          
+          if [ "${{ github.event.inputs.environment }}" == "dev" ]; then
+            DOMAIN="epi-clo.axel-martin.fr"
+          else
+            DOMAIN="prod.axel-martin.fr"
+          fi
+          
+          ansible-playbook -i inventory/ci-inventory.yml playbooks/setup-https.yml \
+            -e "domain_name=${DOMAIN}" \
+            -e "certbot_email=martin.axel@sfr.fr" \
+            --ssh-extra-args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
+            || echo "HTTPS setup failed (may require DNS configuration)"
+      
+      - name: Health check
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        run: |
+          echo "Testing HTTP endpoint..."
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://${{ steps.vmss_ips.outputs.first_ip }} || echo "000")
+          echo "HTTP Status: $HTTP_CODE"
+          
+          if [ "$HTTP_CODE" == "200" ]; then
+            echo "✓ Health check passed!"
+          else
+            echo "⚠ Health check returned: $HTTP_CODE"
+          fi
+      
+      - name: Deployment summary
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        run: |
+          echo "## IaaS Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **VMSS IPs**:" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.vmss_ips.outputs.ips }}" | while read ip; do
+            echo "  - http://${ip}" >> $GITHUB_STEP_SUMMARY
+          done
+          echo "- **Deployed by**: @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Dry run summary
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: |
+          echo "## Dry Run Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "No changes were applied. Review the plan above." >> $GITHUB_STEP_SUMMARY
+

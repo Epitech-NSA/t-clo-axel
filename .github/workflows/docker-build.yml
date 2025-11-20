@@ -1,0 +1,143 @@
+name: Build & Push Docker Image
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'sample-app-master/**'
+      - '.github/workflows/docker-build.yml'
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Custom tag for the image'
+        required: false
+        default: ''
+
+env:
+  DOCKER_IMAGE_NAME: sample-app
+
+jobs:
+  build-and-push:
+    name: Build and Push to ACR
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Get full history for proper versioning
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      - name: Get ACR login server
+        id: acr
+        run: |
+          if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            ACR_NAME="tcprodacrfrc01"
+          else
+            ACR_NAME="tcdevacrfrc01"
+          fi
+          ACR_LOGIN_SERVER="${ACR_NAME}.azurecr.io"
+          echo "acr_name=${ACR_NAME}" >> $GITHUB_OUTPUT
+          echo "login_server=${ACR_LOGIN_SERVER}" >> $GITHUB_OUTPUT
+          echo "Using ACR: ${ACR_LOGIN_SERVER}"
+      
+      - name: Log in to ACR
+        run: |
+          az acr login --name ${{ steps.acr.outputs.acr_name }}
+      
+      - name: Generate image tags
+        id: tags
+        run: |
+          GIT_SHA=$(git rev-parse --short HEAD)
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          VERSION_TAG="${GIT_SHA}-${TIMESTAMP}"
+          
+          TAGS="${{ steps.acr.outputs.login_server }}/${DOCKER_IMAGE_NAME}:${VERSION_TAG}"
+          TAGS="${TAGS},${{ steps.acr.outputs.login_server }}/${DOCKER_IMAGE_NAME}:latest"
+          
+          # Add branch-specific tag
+          if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            TAGS="${TAGS},${{ steps.acr.outputs.login_server }}/${DOCKER_IMAGE_NAME}:stable"
+          fi
+          
+          # Add custom tag if provided
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            TAGS="${TAGS},${{ steps.acr.outputs.login_server }}/${DOCKER_IMAGE_NAME}:${{ github.event.inputs.tag }}"
+          fi
+          
+          echo "tags=${TAGS}" >> $GITHUB_OUTPUT
+          echo "version=${VERSION_TAG}" >> $GITHUB_OUTPUT
+          
+          echo "Image tags:"
+          echo "${TAGS}" | tr ',' '\n'
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./sample-app-master
+          push: true
+          tags: ${{ steps.tags.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            VCS_REF=${{ github.sha }}
+      
+      - name: Run Trivy security scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.acr.outputs.login_server }}/${{ env.DOCKER_IMAGE_NAME }}:${{ steps.tags.outputs.version }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+        continue-on-error: true
+      
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+        continue-on-error: true
+      
+      - name: Image digest
+        run: |
+          echo "Image pushed successfully!"
+          echo "Tags: ${{ steps.tags.outputs.tags }}"
+          az acr repository show-tags \
+            --name ${{ steps.acr.outputs.acr_name }} \
+            --repository ${{ env.DOCKER_IMAGE_NAME }} \
+            --output table
+      
+      - name: Create release info
+        if: github.ref == 'refs/heads/main'
+        run: |
+          cat > release-info.txt << EOF
+          Docker Image Release
+          ====================
+          Version: ${{ steps.tags.outputs.version }}
+          Registry: ${{ steps.acr.outputs.login_server }}
+          Image: ${DOCKER_IMAGE_NAME}
+          Commit: ${{ github.sha }}
+          Date: $(date)
+          EOF
+          cat release-info.txt
+      
+      - name: Upload release info
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-info
+          path: release-info.txt
+

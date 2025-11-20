@@ -1,0 +1,27 @@
+---
+# Static Inventory for IaaS VMs
+# Use this as a workaround if azure_rm dynamic inventory has issues
+
+all:
+  children:
+    vmss_instances:
+      hosts:
+        vmss-instance-1:
+          ansible_host: 52.143.167.51
+          ansible_user: azureuser
+          ansible_ssh_private_key_file: ~/.ssh/id_ed25519
+      vars:
+        acr_name: "tcdevacrfrc01"
+        acr_login_server: "tcdevacrfrc01.azurecr.io"
+        docker_image_full: "tcdevacrfrc01.azurecr.io/sample-app:latest"
+        app_container_name: "laravel-app"
+        app_port: 8080
+        mysql_host: "tc-dev-mysql-frc-01.mysql.database.azure.com"
+        mysql_port: "3306"
+        mysql_database: "app_database"
+        mysql_username: "app_admin"
+        mysql_password: "YourSecurePassword123!"
+        laravel_app_key: "base64:DJYTvaRkEZ/YcQsX3TMpB0iCjgme2rhlIOus9A1hnj4="
+        laravel_app_env: "dev"
+        laravel_app_debug: "true"
+

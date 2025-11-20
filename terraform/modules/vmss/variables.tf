@@ -53,17 +53,6 @@ variable "subnet_id" {
   type        = string
 }
 
-variable "lb_backend_pool_id" {
-  description = "ID of the Load Balancer backend pool"
-  type        = string
-}
-
-variable "lb_nat_pool_id" {
-  description = "ID of the Load Balancer NAT pool for SSH access"
-  type        = string
-  default     = null
-}
-
 variable "tags" {
   description = "Tags to apply to the VMSS resources"
   type        = map(string)

@@ -1,0 +1,74 @@
+---
+# Playbook to setup HTTPS with Nginx and Let's Encrypt
+# Usage: ansible-playbook -i inventory/static.yml playbooks/setup-https.yml
+
+- name: Setup HTTPS with Nginx and Let's Encrypt
+  hosts: all
+  become: yes
+  gather_facts: yes
+
+  vars:
+    domain_name: "epi-clo.axel-martin.fr"
+    ssl_email: "martin.axel@sfr.fr"
+    app_port: 8080
+
+  pre_tasks:
+    - name: Display configuration
+      debug:
+        msg: |
+          Configuring HTTPS for:
+          - Domain: {{ domain_name }}
+          - Email: {{ ssl_email }}
+          - Backend: localhost:{{ app_port }}
+
+    - name: Wait for system to be ready
+      wait_for_connection:
+        timeout: 60
+
+  roles:
+    - role: nginx-ssl
+      tags: ['nginx', 'ssl']
+
+  post_tasks:
+    - name: Test Nginx configuration
+      command: nginx -t
+      register: nginx_test
+      changed_when: false
+
+    - name: Display Nginx test result
+      debug:
+        msg: "{{ nginx_test.stderr_lines }}"
+
+    - name: Display SSL certificate info
+      command: certbot certificates
+      register: cert_info
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Show certificate information
+      debug:
+        msg: "{{ cert_info.stdout_lines }}"
+      when: cert_info.rc == 0
+
+    - name: Display success message
+      debug:
+        msg: |
+          ========================================
+          HTTPS Setup Complete!
+          ========================================
+          
+          Your application is now accessible at:
+          https://{{ domain_name }}
+          
+          SSL Certificate Details:
+          - Issuer: Let's Encrypt
+          - Auto-renewal: Configured (daily check)
+          - Email notifications: {{ ssl_email }}
+          
+          Next steps:
+          1. Ensure your DNS A record points to the VM IP
+          2. Test HTTPS access: curl https://{{ domain_name }}
+          3. Check SSL rating: https://www.ssllabs.com/ssltest/
+          
+          ========================================
+

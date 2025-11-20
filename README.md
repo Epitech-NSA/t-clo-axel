@@ -1,29 +1,52 @@
 # TERRACLOUD
 
-Infrastructure as Code (IaC) sur Microsoft Azure - Comparaison PaaS vs IaaS
+[![Terraform](https://img.shields.io/badge/Terraform-1.13+-623CE4?logo=terraform)](https://www.terraform.io/)
+[![Azure](https://img.shields.io/badge/Azure-Cloud-0078D4?logo=microsoft-azure)](https://azure.microsoft.com/)
+[![Ansible](https://img.shields.io/badge/Ansible-2.16+-EE0000?logo=ansible)](https://www.ansible.com/)
+[![Docker](https://img.shields.io/badge/Docker-20.10+-2496ED?logo=docker)](https://www.docker.com/)
+[![GitHub Actions](https://img.shields.io/badge/CI/CD-GitHub_Actions-2088FF?logo=github-actions)](https://github.com/features/actions)
 
-## Vue d'ensemble
+**Infrastructure as Code (IaC) production-ready sur Microsoft Azure**
 
-TERRACLOUD est un projet d'infrastructure qui présente et compare deux approches de déploiement cloud pour une application web conteneurisée sur Microsoft Azure.
+Plateforme complète de déploiement cloud comparant PaaS et IaaS, avec CI/CD automatisé, monitoring, et HTTPS.
 
-### Les deux approches
+## 🎯 Vue d'ensemble
+
+TERRACLOUD est un projet d'infrastructure production-ready démontrant les pratiques de déploiement cloud sur Microsoft Azure. Le projet propose deux architectures complètes (PaaS et IaaS) avec automatisation CI/CD, scripts de déploiement, tests automatisés, et documentation exhaustive.
+
+### ✨ Fonctionnalités principales
+
+- **Déploiement automatisé** : Scripts bash et Makefile pour déploiement en un clic
+- **CI/CD complet** : GitHub Actions pour build/test/deploy automatiques
+- **HTTPS/SSL** : Configuration automatique avec Let's Encrypt
+- **Tests automatisés** : Suite de tests pour PaaS, IaaS, HTTPS, et Database
+- **Monitoring** : Health checks et logs centralisés
+- **Production-ready** : Checklist complète et procédures de rollback
+- **Documentation exhaustive** : Guides détaillés pour chaque composant
+
+### 🏗️ Les deux approches
 
 **PaaS (Platform as a Service)**
 - Azure App Service pour l'hébergement
-- Déploiement simplifié et automatisé
+- Déploiement simplifié en 15 minutes
 - Maintenance managée par Azure
+- HTTPS natif avec certificat managé
 
 **IaaS (Infrastructure as a Service)**
-- VM Scale Set avec Load Balancer
+- VM Scale Set
 - Contrôle total de l'infrastructure
 - Configuration via Ansible
+- HTTPS avec Let's Encrypt et Nginx
 
-### Technologies utilisées
+### 🛠️ Stack technique complète
 
 - **Application**: Laravel (PHP) avec MySQL
-- **Conteneurisation**: Docker
+- **Conteneurisation**: Docker + ACR
 - **Infrastructure as Code**: Terraform
-- **Automatisation**: Ansible (IaaS)
+- **Configuration Management**: Ansible
+- **CI/CD**: GitHub Actions
+- **Reverse Proxy**: Nginx (IaaS)
+- **SSL/TLS**: Let's Encrypt
 - **Cloud Provider**: Microsoft Azure
 
 ## Objectifs pédagogiques
@@ -36,202 +59,91 @@ TERRACLOUD est un projet d'infrastructure qui présente et compare deux approche
 
 ---
 
-## Structure du projet
+## 📁 Structure du projet
 
 ```
 T-CLO-900/
-├── terraform/                   # Infrastructure as Code
-│   ├── envs/                    
-│   │   ├── dev/                 # Environnement de développement
-│   │   │   ├── infrastructure.tf    # Infrastructure partagée
-│   │   │   ├── paas.tf             # Configuration PaaS
-│   │   │   ├── iaas.tf             # Configuration IaaS
-│   │   │   ├── variables.tf        # Variables
-│   │   │   └── backend.tf          # Backend Terraform
-│   │   └── prod/                # Environnement de production
-│   └── modules/                 # Modules Terraform réutilisables
-│       ├── rg/                  # Resource Group
-│       ├── network/             # Réseau (VNet, Subnets, NSG)
-│       ├── acr/                 # Container Registry
-│       ├── mysql/               # Base de données MySQL
-│       ├── appservice/          # App Service (PaaS)
-│       ├── loadbalancer/        # Load Balancer (IaaS)
-│       └── vmss/                # VM Scale Set (IaaS)
-│
-├── ansible/                     # Automatisation IaaS
-│   ├── inventory/               # Inventaires dynamiques Azure
-│   ├── playbooks/               # Playbooks de déploiement
-│   ├── roles/                   # Rôles Ansible
-│   └── group_vars/              # Variables de configuration
-│
-├── sample-app-master/           # Application Laravel
-│   ├── Dockerfile               # Configuration Docker
-│   └── ...                      # Code source de l'application
-│
-└── docs/                        # Documentation complète
-    ├── README.md                # Index de la documentation
-    ├── conventions.md           # Conventions de nommage
-    ├── architecture/            # Documentation architecturale
-    ├── deployment/              # Guides de déploiement
-    └── guides/                  # Guides utilisateur
+├── terraform/          # Infrastructure as Code (modules, configs)
+├── ansible/            # Automatisation IaaS (playbooks, roles)
+├── scripts/            # Scripts bash d'automatisation
+├── tests/              # Tests automatisés
+├── docs/               # Documentation complète
+├── sample-app-master/  # Application Laravel
+├── .github/workflows/  # CI/CD GitHub Actions
+└── Makefile           # Commandes simplifiées
 ```
+
+**Concepts clés** : Terraform Workspaces (multi-env), Ansible (IaaS automation), GitHub Actions (CI/CD), Docker + ACR
 
 ---
 
-## Démarrage rapide
-
-### Prérequis
-
-| Outil | Version minimale | Usage |
-|-------|-----------------|-------|
-| [Azure CLI](https://learn.microsoft.com/fr-fr/cli/azure/install-azure-cli) | 2.40+ | Gestion Azure |
-| [Terraform](https://developer.hashicorp.com/terraform) | 1.0+ | Infrastructure as Code |
-| [Docker](https://docs.docker.com/get-docker/) | 20.10+ | Build des images |
-| [Ansible](https://docs.ansible.com/) | 2.9+ | Automatisation (IaaS uniquement) |
-
-### Configuration Azure
+## 🚀 Démarrage rapide
 
 ```bash
-# Se connecter à Azure
-az login
+# 1. Cloner et configurer
+git clone https://github.com/Epitech-NSA/t-clo-axel && cd t-clo-axel
+make setup
 
-# Définir la subscription Epitech
-az account set --subscription "6b9318b1-2215-418a-b0fd-ba0832e9b333"
+# 2. Déployer (PaaS ou IaaS)
+make build-push ENV=dev
+make dev-paas              # PaaS: 15 minutes
+# OU
+make dev-iaas              # IaaS: 30 minutes
+
+# 3. Tester
+make test-paas ENV=dev
+make urls ENV=dev
 ```
 
-**Informations importantes:**
-- **Tenant**: Epitech
-- **Subscription ID**: `6b9318b1-2215-418a-b0fd-ba0832e9b333`
-- **Resource Group**: `rg-nan_1` (partagé, ne pas supprimer)
-- **Région**: France Central
+**Prérequis** : Azure CLI, Terraform, Docker, Git (+ Ansible pour IaaS)
 
-### Premier déploiement
-
-Le guide de démarrage complet pour un accompagnement pas à pas:
-
-**[Guide de démarrage rapide](docs/guides/getting-started.md)**
-
-Ce guide inclut:
-- Installation détaillée de tous les outils
-- Configuration pas à pas
-- Premier déploiement PaaS en 30 minutes
-- Vérification et tests
+➡️ **Guide complet** : [docs/guides/getting-started.md](docs/guides/getting-started.md)  
+➡️ **Procédures détaillées** : [Runbook PaaS](docs/runbooks/runbook-paas.md) | [Runbook IaaS](docs/runbooks/runbook-iaas.md)
 
 ---
 
-## Déployer avec PaaS (App Service)
+## 🤖 CI/CD Automatisé
 
-### Résumé de l'approche
+GitHub Actions intégré pour automatisation complète :
+- **Build automatique** sur push (main/develop)
+- **Validation Terraform** sur Pull Request
+- **Déploiement manuel** PaaS/IaaS (dev/prod)
+- **Scans de sécurité** (Trivy, tfsec)
 
-L'approche PaaS utilise Azure App Service pour un déploiement simplifié et managé.
-
-**Avantages:**
-- Déploiement en 15 minutes
-- Maintenance automatisée par Azure
-- Scalabilité automatique
-- Coût prévisible (~32€/mois en dev)
-
-**Inconvénients:**
-- Contrôle limité sur l'infrastructure
-- Dépendance à la plateforme Azure
-- Options de configuration limitées
-
-### Déploiement rapide
-
-```bash
-cd terraform/envs/dev
-cp terraform.tfvars.example terraform.tfvars
-# Éditer terraform.tfvars avec votre mot de passe MySQL
-
-terraform init
-terraform apply -target=module.rg \
-                -target=module.network \
-                -target=module.acr \
-                -target=module.mysql \
-                -target=module.appservice
-
-# Récupérer l'URL
-terraform output webapp_url
-```
-
-**Documentation complète:** [docs/deployment/deployment-paas.md](docs/deployment/deployment-paas.md)
+➡️ **Documentation complète** : [docs/operations/cicd-reference.md](docs/operations/cicd-reference.md)
 
 ---
 
-## Déployer avec IaaS (VM Scale Set)
+## Approche PaaS (App Service)
 
-### Résumé de l'approche
+**Azure App Service** pour un déploiement simplifié et managé.
 
-L'approche IaaS utilise des VMs dans un Scale Set avec Load Balancer pour un contrôle total.
+✅ **Avantages** : Déploiement rapide (15min), maintenance automatique, coût ~32€/mois  
+❌ **Inconvénients** : Contrôle limité, dépendance plateforme
 
-**Avantages:**
-- Contrôle complet de l'infrastructure
-- Flexibilité maximale
-- Configuration personnalisée
-- Debugging approfondi possible
+➡️ **Runbook complet** : [docs/runbooks/runbook-paas.md](docs/runbooks/runbook-paas.md)
 
-**Inconvénients:**
-- Déploiement en 30-35 minutes
-- Maintenance manuelle
-- Configuration plus complexe
-- Coût plus élevé (~103€/mois en dev)
+---
 
-### Déploiement rapide
+## Approche IaaS (VM Scale Set)
 
-```bash
-# Générer une clé SSH
-ssh-keygen -t ed25519 -f ~/.ssh/terracloud-dev-key
+**VM Scale Set + Ansible** pour un contrôle total de l'infrastructure.
 
-# Déployer l'infrastructure
-cd terraform/envs/dev
-export TF_VAR_ssh_public_key_iaas="$(cat ~/.ssh/terracloud-dev-key.pub)"
-cp terraform.tfvars.example terraform.tfvars
-# Éditer terraform.tfvars
+✅ **Avantages** : Contrôle complet, flexibilité maximale, configuration personnalisée  
+❌ **Inconvénients** : Déploiement plus long (30min), maintenance manuelle, coût ~53€/mois
 
-terraform init
-terraform apply -target=module.loadbalancer \
-                -target=module.vmss
-
-# Déployer l'application avec Ansible
-cd ../../../ansible
-ansible-playbook -i inventory/azure_rm.yml playbooks/site.yml
-
-# Récupérer l'IP du Load Balancer
-cd ../terraform/envs/dev
-terraform output iaas_load_balancer_ip
-```
-
-**Documentation complète:** [docs/deployment/deployment-iaas.md](docs/deployment/deployment-iaas.md)
+➡️ **Runbook complet** : [docs/runbooks/runbook-iaas.md](docs/runbooks/runbook-iaas.md)
 
 ---
 
 ## Architecture
 
-### Vue d'ensemble
+Deux architectures parallèles partageant la même infrastructure de base (VNet, ACR, MySQL).
 
-Le projet implémente deux architectures parallèles partageant la même infrastructure de base:
+**PaaS** : `Internet → App Service → ACR → MySQL`  
+**IaaS** : `Internet → VM Scale Set (Public IPs) → Docker → ACR → MySQL`
 
-**Infrastructure partagée:**
-- Resource Group: `rg-nan_1`
-- Virtual Network: `tc-dev-vnet-frc-01` (10.0.0.0/16)
-- Azure Container Registry: `tcdevacrfrc01`
-- MySQL Flexible Server: `tc-dev-mysql-frc-01`
-
-**Architecture PaaS:**
-```
-Internet → App Service → ACR → MySQL
-```
-
-**Architecture IaaS:**
-```
-Internet → Load Balancer → VM Scale Set (2-5 VMs) → Docker → ACR → MySQL
-```
-
-**Documentation architecture complète:**
-- [Vue d'ensemble architecturale](docs/architecture/overview.md)
-- [Infrastructure partagée](docs/architecture/infrastructure-shared.md)
-- [Architecture PaaS détaillée](docs/architecture/architecture-paas.md)
-- [Architecture IaaS détaillée](docs/architecture/architecture-iaas.md)
+➡️ **Documentation architecturale** : [docs/reference/architecture/overview.md](docs/reference/architecture/overview.md)
 
 ---
 
@@ -243,139 +155,68 @@ Internet → Load Balancer → VM Scale Set (2-5 VMs) → Docker → ACR → MyS
 | **Complexité** | Faible | Élevée |
 | **Contrôle infrastructure** | Limité | Total |
 | **Maintenance** | Automatique | Manuelle |
-| **Coût mensuel (dev)** | ~32€ | ~103€ |
+| **Coût mensuel (dev)** | ~32€ | ~53€ |
 | **Scalabilité** | Automatique | Configurable |
 | **Cas d'usage idéal** | Applications standard | Besoins spécifiques |
 
-**Analyse détaillée:** [docs/deployment/comparison.md](docs/deployment/comparison.md)
+➡️ **Analyse détaillée** : [docs/reference/comparison.md](docs/reference/comparison.md)
 
 ---
 
 ## Configuration
 
-### Environnements
+**Environnements** : `dev` (France Central) | `prod` (France Central)  
+**Variables Terraform** : `terraform.tfvars` (mysql_admin_password, ssh_public_key_iaas pour IaaS)
 
-| Environnement | Code | Région | VNet CIDR | Disponibilité |
-|---------------|------|--------|-----------|---------------|
-| Développement | `dev` | France Central | 10.0.0.0/16 | 08:00-19:00 |
-| Production | `prod` | France Central | 10.1.0.0/16 | 24/7 |
-
-### Variables Terraform
-
-Créer un fichier `terraform.tfvars` dans `terraform/envs/dev/` ou `terraform/envs/prod/`:
-
-```hcl
-# Obligatoire
-mysql_admin_password = "VotreMotDePasseSecurise123!"
-ssh_public_key_iaas  = "ssh-ed25519 AAAAC3Nza..." # Pour IaaS uniquement
-
-# Optionnel (valeurs par défaut disponibles)
-environment = "dev"
-location    = "francecentral"
-```
+➡️ **Configuration détaillée** : [docs/guides/getting-started.md](docs/guides/getting-started.md)
 
 ---
 
 ## Documentation
 
-### Guides principaux
+### Guides et démarrage
 
 | Document | Description |
 |----------|-------------|
 | [Guide de démarrage](docs/guides/getting-started.md) | Premier déploiement en 30 minutes |
 | [Guide utilisateur](docs/guides/user-guide.md) | Utilisation de l'application |
-| [Déploiement PaaS](docs/deployment/deployment-paas.md) | Guide complet PaaS |
-| [Déploiement IaaS](docs/deployment/deployment-iaas.md) | Guide complet IaaS |
-| [Comparaison détaillée](docs/deployment/comparison.md) | Analyse PaaS vs IaaS |
+| [Index des guides](docs/guides/README.md) | Tous les guides pratiques |
 
-### Documentation architecture
+### Runbooks opérationnels
 
 | Document | Description |
 |----------|-------------|
-| [Vue d'ensemble](docs/architecture/overview.md) | Architecture générale |
-| [Infrastructure partagée](docs/architecture/infrastructure-shared.md) | Ressources communes |
-| [Architecture PaaS](docs/architecture/architecture-paas.md) | Détails PaaS |
-| [Architecture IaaS](docs/architecture/architecture-iaas.md) | Détails IaaS |
+| [Runbook PaaS](docs/runbooks/runbook-paas.md) | Procédure déploiement PaaS (15-20min) |
+| [Runbook IaaS](docs/runbooks/runbook-iaas.md) | Procédure déploiement IaaS (30-35min) |
+| [Runbook Destruction](docs/runbooks/runbook-destroy.md) | Suppression des ressources |
+| [Index des runbooks](docs/runbooks/README.md) | Toutes les procédures |
 
-### Références
+### Troubleshooting
 
-- [Conventions de nommage](docs/conventions.md) - Standards Azure du projet
-- [Index complet de la documentation](docs/README.md) - Navigation complète
+| Document | Description |
+|----------|-------------|
+| [PaaS Troubleshooting](docs/troubleshooting/paas-troubleshooting.md) | Dépannage Azure App Service |
+| [IaaS Troubleshooting](docs/troubleshooting/iaas-troubleshooting.md) | Dépannage VM Scale Set |
+| [CI/CD Troubleshooting](docs/troubleshooting/cicd-troubleshooting.md) | Dépannage GitHub Actions |
+| [Index troubleshooting](docs/troubleshooting/README.md) | Tous les guides de dépannage |
 
----
+### Operations et référence
 
-## Nettoyage des ressources
-
-**Détruire uniquement le PaaS:**
-```bash
-cd terraform/envs/dev
-terraform destroy -target=module.appservice
-```
-
-**Détruire uniquement l'IaaS:**
-```bash
-cd terraform/envs/dev
-terraform destroy -target=module.vmss -target=module.loadbalancer
-```
-
-**Détruire toute l'infrastructure:**
-```bash
-cd terraform/envs/dev
-terraform destroy
-```
-
-**Important:** Le Resource Group `rg-nan_1` est partagé et ne doit jamais être supprimé.
+| Document | Description |
+|----------|-------------|
+| [Scripts Reference](docs/operations/scripts-reference.md) | Documentation scripts et Makefile |
+| [CI/CD Reference](docs/operations/cicd-reference.md) | Documentation GitHub Actions |
+| [Daily Operations](docs/operations/daily-operations.md) | Opérations quotidiennes |
+| [Architecture](docs/reference/architecture/overview.md) | Documentation architecturale |
+| [Comparaison PaaS vs IaaS](docs/reference/comparison.md) | Analyse détaillée |
+| [Index complet](docs/README.md) | Navigation complète
 
 ---
 
-## Dépannage rapide
+## 📜 Licence
 
-| Problème | Solution rapide |
-|----------|----------------|
-| Terraform state lock | `terraform force-unlock <LOCK_ID>` |
-| Ansible unreachable | Vérifier que les VMs sont démarrées |
-| App Service 503 | Attendre 2-3 min, consulter les logs |
-| MySQL connexion refusée | Vérifier les firewall rules |
-
-**Documentation complète du dépannage:**
-- [Dépannage PaaS](docs/deployment/deployment-paas.md#dépannage)
-- [Dépannage IaaS](docs/deployment/deployment-iaas.md#dépannage)
+Ce projet est destiné à des fins éducatives dans le cadre du cursus Epitech.
 
 ---
 
-## Informations projet
-
-### Contexte
-
-Projet réalisé dans le cadre du cursus Epitech - T-CLO-900
-
-### Informations Azure
-
-- **Tenant**: Epitech
-- **Subscription**: Sub T-CLO (`6b9318b1-2215-418a-b0fd-ba0832e9b333`)
-- **Resource Group**: `rg-nan_1` (partagé)
-- **Région principale**: France Central
-
-### Standards et conventions
-
-Toutes les ressources suivent les conventions de nommage Azure et incluent les tags standards TERRACLOUD. Voir [docs/conventions.md](docs/conventions.md) pour les détails.
-
----
-
-## Ressources externes
-
-### Documentation Azure
-
-- [Azure App Service](https://learn.microsoft.com/fr-fr/azure/app-service/)
-- [Azure VM Scale Sets](https://learn.microsoft.com/fr-fr/azure/virtual-machine-scale-sets/)
-- [Azure Container Registry](https://learn.microsoft.com/fr-fr/azure/container-registry/)
-
-### Documentation outils
-
-- [Terraform Azure Provider](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs)
-- [Ansible Azure Collection](https://docs.ansible.com/ansible/latest/collections/azure/azcollection/index.html)
-- [Laravel Documentation](https://laravel.com/docs)
-
----
-
-**Projet éducatif - Epitech 2025**
+**Projet éducatif - Epitech 2025** | Made with ❤️ and ☕

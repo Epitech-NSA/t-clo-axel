@@ -48,31 +48,7 @@ resource "azurerm_linux_web_app" "this" {
   tags = var.tags
 }
 
-resource "null_resource" "docker_build_push" {
-  triggers = {
-    dockerfile_hash = filemd5("${var.app_source_path}/Dockerfile")
-    source_hash     = sha1(join("", [for f in fileset("${var.app_source_path}", "**") : filesha1("${var.app_source_path}/${f}")]))
-  }
-
-  provisioner "local-exec" {
-    command = <<-EOT
-      set -e
-      cd "${var.app_source_path}"
-      
-      # Variables
-      ACR_NAME="${regex("[^.]+", var.acr_login_server)}"
-      IMAGE_FULL_NAME="${var.acr_login_server}/${var.image_name}:${var.image_tag}"
-      
-      az acr login --name "$ACR_NAME"
-      docker build -t "$IMAGE_FULL_NAME" .
-      docker push "$IMAGE_FULL_NAME"
-      
-      echo "Successfully pushed $IMAGE_FULL_NAME"
-    EOT
-  }
-
-  provisioner "local-exec" {
-    when    = create
-    command = "echo 'ACR ID: ${var.acr_id}'"
-  }
-}
+# Note: Docker image build and push is now handled separately via:
+# - scripts/build-push-image.sh for manual deployments
+# - GitHub Actions workflow docker-build.yml for CI/CD
+# The image must be present in ACR before deploying the App Service

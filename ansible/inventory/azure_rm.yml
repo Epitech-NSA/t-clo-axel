@@ -5,6 +5,7 @@ plugin: azure_rm
 
 # Azure authentication
 auth_source: auto  # Uses Azure CLI credentials by default
+subscription_id: "6b9318b1-2215-418a-b0fd-ba0832e9b333"
 
 # Filter instances
 include_vm_resource_groups:

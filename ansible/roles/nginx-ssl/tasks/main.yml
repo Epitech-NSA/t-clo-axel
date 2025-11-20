@@ -1,0 +1,79 @@
+---
+# Tasks for Nginx SSL/TLS setup with Let's Encrypt
+
+- name: Update apt cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Install Nginx
+  apt:
+    name: nginx
+    state: present
+
+- name: Install Certbot and Nginx plugin
+  apt:
+    name:
+      - certbot
+      - python3-certbot-nginx
+    state: present
+
+- name: Ensure Nginx is started and enabled
+  systemd:
+    name: nginx
+    state: started
+    enabled: yes
+
+- name: Configure Nginx as reverse proxy (HTTP only first)
+  template:
+    src: nginx-site.j2
+    dest: /etc/nginx/sites-available/laravel
+    mode: '0644'
+  notify: Reload Nginx
+
+- name: Enable Laravel site
+  file:
+    src: /etc/nginx/sites-available/laravel
+    dest: /etc/nginx/sites-enabled/laravel
+    state: link
+  notify: Reload Nginx
+
+- name: Disable default Nginx site
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Reload Nginx
+
+- name: Flush handlers to apply Nginx config
+  meta: flush_handlers
+
+- name: Check if SSL certificate already exists
+  stat:
+    path: "/etc/letsencrypt/live/{{ domain_name }}/fullchain.pem"
+  register: cert_exists
+
+- name: Obtain SSL certificate from Let's Encrypt
+  command: >
+    certbot --nginx
+    -d {{ domain_name }}
+    --non-interactive
+    --agree-tos
+    --email {{ ssl_email }}
+    --redirect
+  when: 
+    - not cert_exists.stat.exists
+    - domain_name is defined
+    - ssl_email is defined
+  notify: Reload Nginx
+
+- name: Setup automatic certificate renewal
+  cron:
+    name: "Renew Let's Encrypt certificates"
+    special_time: daily
+    job: "certbot renew --quiet --post-hook 'systemctl reload nginx'"
+    user: root
+
+- name: Display SSL status
+  debug:
+    msg: "SSL certificate {{ 'already exists' if cert_exists.stat.exists else 'has been obtained' }} for {{ domain_name }}"
+
